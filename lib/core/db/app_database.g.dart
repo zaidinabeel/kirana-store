@@ -330,6 +330,12 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
   late final GeneratedColumn<double> mrp = GeneratedColumn<double>(
       'mrp', aliasedName, true,
       type: DriftSqlType.double, requiredDuringInsert: false);
+  static const VerificationMeta _costPriceMeta =
+      const VerificationMeta('costPrice');
+  @override
+  late final GeneratedColumn<double> costPrice = GeneratedColumn<double>(
+      'cost_price', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   static const VerificationMeta _gstRateMeta =
       const VerificationMeta('gstRate');
   @override
@@ -399,6 +405,7 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
         unit,
         price,
         mrp,
+        costPrice,
         gstRate,
         hsnCode,
         stockQty,
@@ -465,6 +472,10 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
       context.handle(
           _mrpMeta, mrp.isAcceptableOrUnknown(data['mrp']!, _mrpMeta));
     }
+    if (data.containsKey('cost_price')) {
+      context.handle(_costPriceMeta,
+          costPrice.isAcceptableOrUnknown(data['cost_price']!, _costPriceMeta));
+    }
     if (data.containsKey('gst_rate')) {
       context.handle(_gstRateMeta,
           gstRate.isAcceptableOrUnknown(data['gst_rate']!, _gstRateMeta));
@@ -530,6 +541,8 @@ class $ProductsTable extends Products with TableInfo<$ProductsTable, Product> {
           .read(DriftSqlType.double, data['${effectivePrefix}price'])!,
       mrp: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}mrp']),
+      costPrice: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}cost_price']),
       gstRate: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}gst_rate'])!,
       hsnCode: attachedDatabase.typeMapping
@@ -565,6 +578,9 @@ class Product extends DataClass implements Insertable<Product> {
   final String unit;
   final double price;
   final double? mrp;
+
+  /// Purchase price per unit (optional). Used for profit reports. Added in schema v2.
+  final double? costPrice;
   final double gstRate;
   final String? hsnCode;
   final double stockQty;
@@ -583,6 +599,7 @@ class Product extends DataClass implements Insertable<Product> {
       required this.unit,
       required this.price,
       this.mrp,
+      this.costPrice,
       required this.gstRate,
       this.hsnCode,
       required this.stockQty,
@@ -610,6 +627,9 @@ class Product extends DataClass implements Insertable<Product> {
     map['price'] = Variable<double>(price);
     if (!nullToAbsent || mrp != null) {
       map['mrp'] = Variable<double>(mrp);
+    }
+    if (!nullToAbsent || costPrice != null) {
+      map['cost_price'] = Variable<double>(costPrice);
     }
     map['gst_rate'] = Variable<double>(gstRate);
     if (!nullToAbsent || hsnCode != null) {
@@ -642,6 +662,9 @@ class Product extends DataClass implements Insertable<Product> {
       unit: Value(unit),
       price: Value(price),
       mrp: mrp == null && nullToAbsent ? const Value.absent() : Value(mrp),
+      costPrice: costPrice == null && nullToAbsent
+          ? const Value.absent()
+          : Value(costPrice),
       gstRate: Value(gstRate),
       hsnCode: hsnCode == null && nullToAbsent
           ? const Value.absent()
@@ -670,6 +693,7 @@ class Product extends DataClass implements Insertable<Product> {
       unit: serializer.fromJson<String>(json['unit']),
       price: serializer.fromJson<double>(json['price']),
       mrp: serializer.fromJson<double?>(json['mrp']),
+      costPrice: serializer.fromJson<double?>(json['costPrice']),
       gstRate: serializer.fromJson<double>(json['gstRate']),
       hsnCode: serializer.fromJson<String?>(json['hsnCode']),
       stockQty: serializer.fromJson<double>(json['stockQty']),
@@ -693,6 +717,7 @@ class Product extends DataClass implements Insertable<Product> {
       'unit': serializer.toJson<String>(unit),
       'price': serializer.toJson<double>(price),
       'mrp': serializer.toJson<double?>(mrp),
+      'costPrice': serializer.toJson<double?>(costPrice),
       'gstRate': serializer.toJson<double>(gstRate),
       'hsnCode': serializer.toJson<String?>(hsnCode),
       'stockQty': serializer.toJson<double>(stockQty),
@@ -714,6 +739,7 @@ class Product extends DataClass implements Insertable<Product> {
           String? unit,
           double? price,
           Value<double?> mrp = const Value.absent(),
+          Value<double?> costPrice = const Value.absent(),
           double? gstRate,
           Value<String?> hsnCode = const Value.absent(),
           double? stockQty,
@@ -732,6 +758,7 @@ class Product extends DataClass implements Insertable<Product> {
         unit: unit ?? this.unit,
         price: price ?? this.price,
         mrp: mrp.present ? mrp.value : this.mrp,
+        costPrice: costPrice.present ? costPrice.value : this.costPrice,
         gstRate: gstRate ?? this.gstRate,
         hsnCode: hsnCode.present ? hsnCode.value : this.hsnCode,
         stockQty: stockQty ?? this.stockQty,
@@ -753,6 +780,7 @@ class Product extends DataClass implements Insertable<Product> {
       unit: data.unit.present ? data.unit.value : this.unit,
       price: data.price.present ? data.price.value : this.price,
       mrp: data.mrp.present ? data.mrp.value : this.mrp,
+      costPrice: data.costPrice.present ? data.costPrice.value : this.costPrice,
       gstRate: data.gstRate.present ? data.gstRate.value : this.gstRate,
       hsnCode: data.hsnCode.present ? data.hsnCode.value : this.hsnCode,
       stockQty: data.stockQty.present ? data.stockQty.value : this.stockQty,
@@ -778,6 +806,7 @@ class Product extends DataClass implements Insertable<Product> {
           ..write('unit: $unit, ')
           ..write('price: $price, ')
           ..write('mrp: $mrp, ')
+          ..write('costPrice: $costPrice, ')
           ..write('gstRate: $gstRate, ')
           ..write('hsnCode: $hsnCode, ')
           ..write('stockQty: $stockQty, ')
@@ -801,6 +830,7 @@ class Product extends DataClass implements Insertable<Product> {
       unit,
       price,
       mrp,
+      costPrice,
       gstRate,
       hsnCode,
       stockQty,
@@ -822,6 +852,7 @@ class Product extends DataClass implements Insertable<Product> {
           other.unit == this.unit &&
           other.price == this.price &&
           other.mrp == this.mrp &&
+          other.costPrice == this.costPrice &&
           other.gstRate == this.gstRate &&
           other.hsnCode == this.hsnCode &&
           other.stockQty == this.stockQty &&
@@ -842,6 +873,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
   final Value<String> unit;
   final Value<double> price;
   final Value<double?> mrp;
+  final Value<double?> costPrice;
   final Value<double> gstRate;
   final Value<String?> hsnCode;
   final Value<double> stockQty;
@@ -861,6 +893,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     this.unit = const Value.absent(),
     this.price = const Value.absent(),
     this.mrp = const Value.absent(),
+    this.costPrice = const Value.absent(),
     this.gstRate = const Value.absent(),
     this.hsnCode = const Value.absent(),
     this.stockQty = const Value.absent(),
@@ -881,6 +914,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     required String unit,
     required double price,
     this.mrp = const Value.absent(),
+    this.costPrice = const Value.absent(),
     this.gstRate = const Value.absent(),
     this.hsnCode = const Value.absent(),
     this.stockQty = const Value.absent(),
@@ -907,6 +941,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     Expression<String>? unit,
     Expression<double>? price,
     Expression<double>? mrp,
+    Expression<double>? costPrice,
     Expression<double>? gstRate,
     Expression<String>? hsnCode,
     Expression<double>? stockQty,
@@ -927,6 +962,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       if (unit != null) 'unit': unit,
       if (price != null) 'price': price,
       if (mrp != null) 'mrp': mrp,
+      if (costPrice != null) 'cost_price': costPrice,
       if (gstRate != null) 'gst_rate': gstRate,
       if (hsnCode != null) 'hsn_code': hsnCode,
       if (stockQty != null) 'stock_qty': stockQty,
@@ -949,6 +985,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       Value<String>? unit,
       Value<double>? price,
       Value<double?>? mrp,
+      Value<double?>? costPrice,
       Value<double>? gstRate,
       Value<String?>? hsnCode,
       Value<double>? stockQty,
@@ -968,6 +1005,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
       unit: unit ?? this.unit,
       price: price ?? this.price,
       mrp: mrp ?? this.mrp,
+      costPrice: costPrice ?? this.costPrice,
       gstRate: gstRate ?? this.gstRate,
       hsnCode: hsnCode ?? this.hsnCode,
       stockQty: stockQty ?? this.stockQty,
@@ -1009,6 +1047,9 @@ class ProductsCompanion extends UpdateCompanion<Product> {
     }
     if (mrp.present) {
       map['mrp'] = Variable<double>(mrp.value);
+    }
+    if (costPrice.present) {
+      map['cost_price'] = Variable<double>(costPrice.value);
     }
     if (gstRate.present) {
       map['gst_rate'] = Variable<double>(gstRate.value);
@@ -1052,6 +1093,7 @@ class ProductsCompanion extends UpdateCompanion<Product> {
           ..write('unit: $unit, ')
           ..write('price: $price, ')
           ..write('mrp: $mrp, ')
+          ..write('costPrice: $costPrice, ')
           ..write('gstRate: $gstRate, ')
           ..write('hsnCode: $hsnCode, ')
           ..write('stockQty: $stockQty, ')
@@ -2329,6 +2371,12 @@ class $InvoiceItemsTable extends InvoiceItems
   late final GeneratedColumn<double> lineTotal = GeneratedColumn<double>(
       'line_total', aliasedName, false,
       type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _costSnapshotMeta =
+      const VerificationMeta('costSnapshot');
+  @override
+  late final GeneratedColumn<double> costSnapshot = GeneratedColumn<double>(
+      'cost_snapshot', aliasedName, true,
+      type: DriftSqlType.double, requiredDuringInsert: false);
   @override
   List<GeneratedColumn> get $columns => [
         id,
@@ -2341,7 +2389,8 @@ class $InvoiceItemsTable extends InvoiceItems
         rate,
         gstRateSnapshot,
         discount,
-        lineTotal
+        lineTotal,
+        costSnapshot
       ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -2416,6 +2465,12 @@ class $InvoiceItemsTable extends InvoiceItems
     } else if (isInserting) {
       context.missing(_lineTotalMeta);
     }
+    if (data.containsKey('cost_snapshot')) {
+      context.handle(
+          _costSnapshotMeta,
+          costSnapshot.isAcceptableOrUnknown(
+              data['cost_snapshot']!, _costSnapshotMeta));
+    }
     return context;
   }
 
@@ -2447,6 +2502,8 @@ class $InvoiceItemsTable extends InvoiceItems
           .read(DriftSqlType.double, data['${effectivePrefix}discount'])!,
       lineTotal: attachedDatabase.typeMapping
           .read(DriftSqlType.double, data['${effectivePrefix}line_total'])!,
+      costSnapshot: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}cost_snapshot']),
     );
   }
 
@@ -2468,6 +2525,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
   final double gstRateSnapshot;
   final double discount;
   final double lineTotal;
+
+  /// Purchase price per unit frozen at sale time, for profit. Null if unknown. Added in schema v2.
+  final double? costSnapshot;
   const InvoiceItem(
       {required this.id,
       required this.invoiceId,
@@ -2479,7 +2539,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       required this.rate,
       required this.gstRateSnapshot,
       required this.discount,
-      required this.lineTotal});
+      required this.lineTotal,
+      this.costSnapshot});
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
     final map = <String, Expression>{};
@@ -2498,6 +2559,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
     map['gst_rate_snapshot'] = Variable<double>(gstRateSnapshot);
     map['discount'] = Variable<double>(discount);
     map['line_total'] = Variable<double>(lineTotal);
+    if (!nullToAbsent || costSnapshot != null) {
+      map['cost_snapshot'] = Variable<double>(costSnapshot);
+    }
     return map;
   }
 
@@ -2518,6 +2582,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       gstRateSnapshot: Value(gstRateSnapshot),
       discount: Value(discount),
       lineTotal: Value(lineTotal),
+      costSnapshot: costSnapshot == null && nullToAbsent
+          ? const Value.absent()
+          : Value(costSnapshot),
     );
   }
 
@@ -2536,6 +2603,7 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       gstRateSnapshot: serializer.fromJson<double>(json['gstRateSnapshot']),
       discount: serializer.fromJson<double>(json['discount']),
       lineTotal: serializer.fromJson<double>(json['lineTotal']),
+      costSnapshot: serializer.fromJson<double?>(json['costSnapshot']),
     );
   }
   @override
@@ -2553,6 +2621,7 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
       'gstRateSnapshot': serializer.toJson<double>(gstRateSnapshot),
       'discount': serializer.toJson<double>(discount),
       'lineTotal': serializer.toJson<double>(lineTotal),
+      'costSnapshot': serializer.toJson<double?>(costSnapshot),
     };
   }
 
@@ -2567,7 +2636,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           double? rate,
           double? gstRateSnapshot,
           double? discount,
-          double? lineTotal}) =>
+          double? lineTotal,
+          Value<double?> costSnapshot = const Value.absent()}) =>
       InvoiceItem(
         id: id ?? this.id,
         invoiceId: invoiceId ?? this.invoiceId,
@@ -2580,6 +2650,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
         gstRateSnapshot: gstRateSnapshot ?? this.gstRateSnapshot,
         discount: discount ?? this.discount,
         lineTotal: lineTotal ?? this.lineTotal,
+        costSnapshot:
+            costSnapshot.present ? costSnapshot.value : this.costSnapshot,
       );
   InvoiceItem copyWithCompanion(InvoiceItemsCompanion data) {
     return InvoiceItem(
@@ -2599,6 +2671,9 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           : this.gstRateSnapshot,
       discount: data.discount.present ? data.discount.value : this.discount,
       lineTotal: data.lineTotal.present ? data.lineTotal.value : this.lineTotal,
+      costSnapshot: data.costSnapshot.present
+          ? data.costSnapshot.value
+          : this.costSnapshot,
     );
   }
 
@@ -2615,14 +2690,26 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           ..write('rate: $rate, ')
           ..write('gstRateSnapshot: $gstRateSnapshot, ')
           ..write('discount: $discount, ')
-          ..write('lineTotal: $lineTotal')
+          ..write('lineTotal: $lineTotal, ')
+          ..write('costSnapshot: $costSnapshot')
           ..write(')'))
         .toString();
   }
 
   @override
-  int get hashCode => Object.hash(id, invoiceId, productId, nameSnapshot,
-      hsnSnapshot, qty, unit, rate, gstRateSnapshot, discount, lineTotal);
+  int get hashCode => Object.hash(
+      id,
+      invoiceId,
+      productId,
+      nameSnapshot,
+      hsnSnapshot,
+      qty,
+      unit,
+      rate,
+      gstRateSnapshot,
+      discount,
+      lineTotal,
+      costSnapshot);
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
@@ -2637,7 +2724,8 @@ class InvoiceItem extends DataClass implements Insertable<InvoiceItem> {
           other.rate == this.rate &&
           other.gstRateSnapshot == this.gstRateSnapshot &&
           other.discount == this.discount &&
-          other.lineTotal == this.lineTotal);
+          other.lineTotal == this.lineTotal &&
+          other.costSnapshot == this.costSnapshot);
 }
 
 class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
@@ -2652,6 +2740,7 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
   final Value<double> gstRateSnapshot;
   final Value<double> discount;
   final Value<double> lineTotal;
+  final Value<double?> costSnapshot;
   final Value<int> rowid;
   const InvoiceItemsCompanion({
     this.id = const Value.absent(),
@@ -2665,6 +2754,7 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     this.gstRateSnapshot = const Value.absent(),
     this.discount = const Value.absent(),
     this.lineTotal = const Value.absent(),
+    this.costSnapshot = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   InvoiceItemsCompanion.insert({
@@ -2679,6 +2769,7 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     this.gstRateSnapshot = const Value.absent(),
     this.discount = const Value.absent(),
     required double lineTotal,
+    this.costSnapshot = const Value.absent(),
     this.rowid = const Value.absent(),
   })  : id = Value(id),
         invoiceId = Value(invoiceId),
@@ -2699,6 +2790,7 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     Expression<double>? gstRateSnapshot,
     Expression<double>? discount,
     Expression<double>? lineTotal,
+    Expression<double>? costSnapshot,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -2713,6 +2805,7 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
       if (gstRateSnapshot != null) 'gst_rate_snapshot': gstRateSnapshot,
       if (discount != null) 'discount': discount,
       if (lineTotal != null) 'line_total': lineTotal,
+      if (costSnapshot != null) 'cost_snapshot': costSnapshot,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -2729,6 +2822,7 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
       Value<double>? gstRateSnapshot,
       Value<double>? discount,
       Value<double>? lineTotal,
+      Value<double?>? costSnapshot,
       Value<int>? rowid}) {
     return InvoiceItemsCompanion(
       id: id ?? this.id,
@@ -2742,6 +2836,7 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
       gstRateSnapshot: gstRateSnapshot ?? this.gstRateSnapshot,
       discount: discount ?? this.discount,
       lineTotal: lineTotal ?? this.lineTotal,
+      costSnapshot: costSnapshot ?? this.costSnapshot,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -2782,6 +2877,9 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
     if (lineTotal.present) {
       map['line_total'] = Variable<double>(lineTotal.value);
     }
+    if (costSnapshot.present) {
+      map['cost_snapshot'] = Variable<double>(costSnapshot.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -2802,6 +2900,7 @@ class InvoiceItemsCompanion extends UpdateCompanion<InvoiceItem> {
           ..write('gstRateSnapshot: $gstRateSnapshot, ')
           ..write('discount: $discount, ')
           ..write('lineTotal: $lineTotal, ')
+          ..write('costSnapshot: $costSnapshot, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -4709,6 +4808,349 @@ class SettingsCompanion extends UpdateCompanion<Setting> {
   }
 }
 
+class $ExpensesTable extends Expenses with TableInfo<$ExpensesTable, Expense> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $ExpensesTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _idMeta = const VerificationMeta('id');
+  @override
+  late final GeneratedColumn<String> id = GeneratedColumn<String>(
+      'id', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _categoryMeta =
+      const VerificationMeta('category');
+  @override
+  late final GeneratedColumn<String> category = GeneratedColumn<String>(
+      'category', aliasedName, false,
+      type: DriftSqlType.string, requiredDuringInsert: true);
+  static const VerificationMeta _amountMeta = const VerificationMeta('amount');
+  @override
+  late final GeneratedColumn<double> amount = GeneratedColumn<double>(
+      'amount', aliasedName, false,
+      type: DriftSqlType.double, requiredDuringInsert: true);
+  static const VerificationMeta _noteMeta = const VerificationMeta('note');
+  @override
+  late final GeneratedColumn<String> note = GeneratedColumn<String>(
+      'note', aliasedName, true,
+      type: DriftSqlType.string, requiredDuringInsert: false);
+  static const VerificationMeta _spentAtMeta =
+      const VerificationMeta('spentAt');
+  @override
+  late final GeneratedColumn<int> spentAt = GeneratedColumn<int>(
+      'spent_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  static const VerificationMeta _createdAtMeta =
+      const VerificationMeta('createdAt');
+  @override
+  late final GeneratedColumn<int> createdAt = GeneratedColumn<int>(
+      'created_at', aliasedName, false,
+      type: DriftSqlType.int, requiredDuringInsert: true);
+  @override
+  List<GeneratedColumn> get $columns =>
+      [id, category, amount, note, spentAt, createdAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'expenses';
+  @override
+  VerificationContext validateIntegrity(Insertable<Expense> instance,
+      {bool isInserting = false}) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('id')) {
+      context.handle(_idMeta, id.isAcceptableOrUnknown(data['id']!, _idMeta));
+    } else if (isInserting) {
+      context.missing(_idMeta);
+    }
+    if (data.containsKey('category')) {
+      context.handle(_categoryMeta,
+          category.isAcceptableOrUnknown(data['category']!, _categoryMeta));
+    } else if (isInserting) {
+      context.missing(_categoryMeta);
+    }
+    if (data.containsKey('amount')) {
+      context.handle(_amountMeta,
+          amount.isAcceptableOrUnknown(data['amount']!, _amountMeta));
+    } else if (isInserting) {
+      context.missing(_amountMeta);
+    }
+    if (data.containsKey('note')) {
+      context.handle(
+          _noteMeta, note.isAcceptableOrUnknown(data['note']!, _noteMeta));
+    }
+    if (data.containsKey('spent_at')) {
+      context.handle(_spentAtMeta,
+          spentAt.isAcceptableOrUnknown(data['spent_at']!, _spentAtMeta));
+    } else if (isInserting) {
+      context.missing(_spentAtMeta);
+    }
+    if (data.containsKey('created_at')) {
+      context.handle(_createdAtMeta,
+          createdAt.isAcceptableOrUnknown(data['created_at']!, _createdAtMeta));
+    } else if (isInserting) {
+      context.missing(_createdAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {id};
+  @override
+  Expense map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return Expense(
+      id: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}id'])!,
+      category: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}category'])!,
+      amount: attachedDatabase.typeMapping
+          .read(DriftSqlType.double, data['${effectivePrefix}amount'])!,
+      note: attachedDatabase.typeMapping
+          .read(DriftSqlType.string, data['${effectivePrefix}note']),
+      spentAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}spent_at'])!,
+      createdAt: attachedDatabase.typeMapping
+          .read(DriftSqlType.int, data['${effectivePrefix}created_at'])!,
+    );
+  }
+
+  @override
+  $ExpensesTable createAlias(String alias) {
+    return $ExpensesTable(attachedDatabase, alias);
+  }
+}
+
+class Expense extends DataClass implements Insertable<Expense> {
+  final String id;
+  final String category;
+  final double amount;
+  final String? note;
+  final int spentAt;
+  final int createdAt;
+  const Expense(
+      {required this.id,
+      required this.category,
+      required this.amount,
+      this.note,
+      required this.spentAt,
+      required this.createdAt});
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['id'] = Variable<String>(id);
+    map['category'] = Variable<String>(category);
+    map['amount'] = Variable<double>(amount);
+    if (!nullToAbsent || note != null) {
+      map['note'] = Variable<String>(note);
+    }
+    map['spent_at'] = Variable<int>(spentAt);
+    map['created_at'] = Variable<int>(createdAt);
+    return map;
+  }
+
+  ExpensesCompanion toCompanion(bool nullToAbsent) {
+    return ExpensesCompanion(
+      id: Value(id),
+      category: Value(category),
+      amount: Value(amount),
+      note: note == null && nullToAbsent ? const Value.absent() : Value(note),
+      spentAt: Value(spentAt),
+      createdAt: Value(createdAt),
+    );
+  }
+
+  factory Expense.fromJson(Map<String, dynamic> json,
+      {ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return Expense(
+      id: serializer.fromJson<String>(json['id']),
+      category: serializer.fromJson<String>(json['category']),
+      amount: serializer.fromJson<double>(json['amount']),
+      note: serializer.fromJson<String?>(json['note']),
+      spentAt: serializer.fromJson<int>(json['spentAt']),
+      createdAt: serializer.fromJson<int>(json['createdAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'id': serializer.toJson<String>(id),
+      'category': serializer.toJson<String>(category),
+      'amount': serializer.toJson<double>(amount),
+      'note': serializer.toJson<String?>(note),
+      'spentAt': serializer.toJson<int>(spentAt),
+      'createdAt': serializer.toJson<int>(createdAt),
+    };
+  }
+
+  Expense copyWith(
+          {String? id,
+          String? category,
+          double? amount,
+          Value<String?> note = const Value.absent(),
+          int? spentAt,
+          int? createdAt}) =>
+      Expense(
+        id: id ?? this.id,
+        category: category ?? this.category,
+        amount: amount ?? this.amount,
+        note: note.present ? note.value : this.note,
+        spentAt: spentAt ?? this.spentAt,
+        createdAt: createdAt ?? this.createdAt,
+      );
+  Expense copyWithCompanion(ExpensesCompanion data) {
+    return Expense(
+      id: data.id.present ? data.id.value : this.id,
+      category: data.category.present ? data.category.value : this.category,
+      amount: data.amount.present ? data.amount.value : this.amount,
+      note: data.note.present ? data.note.value : this.note,
+      spentAt: data.spentAt.present ? data.spentAt.value : this.spentAt,
+      createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('Expense(')
+          ..write('id: $id, ')
+          ..write('category: $category, ')
+          ..write('amount: $amount, ')
+          ..write('note: $note, ')
+          ..write('spentAt: $spentAt, ')
+          ..write('createdAt: $createdAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode =>
+      Object.hash(id, category, amount, note, spentAt, createdAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is Expense &&
+          other.id == this.id &&
+          other.category == this.category &&
+          other.amount == this.amount &&
+          other.note == this.note &&
+          other.spentAt == this.spentAt &&
+          other.createdAt == this.createdAt);
+}
+
+class ExpensesCompanion extends UpdateCompanion<Expense> {
+  final Value<String> id;
+  final Value<String> category;
+  final Value<double> amount;
+  final Value<String?> note;
+  final Value<int> spentAt;
+  final Value<int> createdAt;
+  final Value<int> rowid;
+  const ExpensesCompanion({
+    this.id = const Value.absent(),
+    this.category = const Value.absent(),
+    this.amount = const Value.absent(),
+    this.note = const Value.absent(),
+    this.spentAt = const Value.absent(),
+    this.createdAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  ExpensesCompanion.insert({
+    required String id,
+    required String category,
+    required double amount,
+    this.note = const Value.absent(),
+    required int spentAt,
+    required int createdAt,
+    this.rowid = const Value.absent(),
+  })  : id = Value(id),
+        category = Value(category),
+        amount = Value(amount),
+        spentAt = Value(spentAt),
+        createdAt = Value(createdAt);
+  static Insertable<Expense> custom({
+    Expression<String>? id,
+    Expression<String>? category,
+    Expression<double>? amount,
+    Expression<String>? note,
+    Expression<int>? spentAt,
+    Expression<int>? createdAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (id != null) 'id': id,
+      if (category != null) 'category': category,
+      if (amount != null) 'amount': amount,
+      if (note != null) 'note': note,
+      if (spentAt != null) 'spent_at': spentAt,
+      if (createdAt != null) 'created_at': createdAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  ExpensesCompanion copyWith(
+      {Value<String>? id,
+      Value<String>? category,
+      Value<double>? amount,
+      Value<String?>? note,
+      Value<int>? spentAt,
+      Value<int>? createdAt,
+      Value<int>? rowid}) {
+    return ExpensesCompanion(
+      id: id ?? this.id,
+      category: category ?? this.category,
+      amount: amount ?? this.amount,
+      note: note ?? this.note,
+      spentAt: spentAt ?? this.spentAt,
+      createdAt: createdAt ?? this.createdAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (id.present) {
+      map['id'] = Variable<String>(id.value);
+    }
+    if (category.present) {
+      map['category'] = Variable<String>(category.value);
+    }
+    if (amount.present) {
+      map['amount'] = Variable<double>(amount.value);
+    }
+    if (note.present) {
+      map['note'] = Variable<String>(note.value);
+    }
+    if (spentAt.present) {
+      map['spent_at'] = Variable<int>(spentAt.value);
+    }
+    if (createdAt.present) {
+      map['created_at'] = Variable<int>(createdAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('ExpensesCompanion(')
+          ..write('id: $id, ')
+          ..write('category: $category, ')
+          ..write('amount: $amount, ')
+          ..write('note: $note, ')
+          ..write('spentAt: $spentAt, ')
+          ..write('createdAt: $createdAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -4723,6 +5165,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
   late final $PurchasesTable purchases = $PurchasesTable(this);
   late final $PurchaseItemsTable purchaseItems = $PurchaseItemsTable(this);
   late final $SettingsTable settings = $SettingsTable(this);
+  late final $ExpensesTable expenses = $ExpensesTable(this);
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4738,7 +5181,8 @@ abstract class _$AppDatabase extends GeneratedDatabase {
         suppliers,
         purchases,
         purchaseItems,
-        settings
+        settings,
+        expenses
       ];
 }
 
@@ -4875,6 +5319,7 @@ typedef $$ProductsTableCreateCompanionBuilder = ProductsCompanion Function({
   required String unit,
   required double price,
   Value<double?> mrp,
+  Value<double?> costPrice,
   Value<double> gstRate,
   Value<String?> hsnCode,
   Value<double> stockQty,
@@ -4895,6 +5340,7 @@ typedef $$ProductsTableUpdateCompanionBuilder = ProductsCompanion Function({
   Value<String> unit,
   Value<double> price,
   Value<double?> mrp,
+  Value<double?> costPrice,
   Value<double> gstRate,
   Value<String?> hsnCode,
   Value<double> stockQty,
@@ -4932,6 +5378,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             Value<String> unit = const Value.absent(),
             Value<double> price = const Value.absent(),
             Value<double?> mrp = const Value.absent(),
+            Value<double?> costPrice = const Value.absent(),
             Value<double> gstRate = const Value.absent(),
             Value<String?> hsnCode = const Value.absent(),
             Value<double> stockQty = const Value.absent(),
@@ -4952,6 +5399,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             unit: unit,
             price: price,
             mrp: mrp,
+            costPrice: costPrice,
             gstRate: gstRate,
             hsnCode: hsnCode,
             stockQty: stockQty,
@@ -4972,6 +5420,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             required String unit,
             required double price,
             Value<double?> mrp = const Value.absent(),
+            Value<double?> costPrice = const Value.absent(),
             Value<double> gstRate = const Value.absent(),
             Value<String?> hsnCode = const Value.absent(),
             Value<double> stockQty = const Value.absent(),
@@ -4992,6 +5441,7 @@ class $$ProductsTableTableManager extends RootTableManager<
             unit: unit,
             price: price,
             mrp: mrp,
+            costPrice: costPrice,
             gstRate: gstRate,
             hsnCode: hsnCode,
             stockQty: stockQty,
@@ -5045,6 +5495,11 @@ class $$ProductsTableFilterComposer
 
   ColumnFilters<double> get mrp => $state.composableBuilder(
       column: $state.table.mrp,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<double> get costPrice => $state.composableBuilder(
+      column: $state.table.costPrice,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -5180,6 +5635,11 @@ class $$ProductsTableOrderingComposer
 
   ColumnOrderings<double> get mrp => $state.composableBuilder(
       column: $state.table.mrp,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<double> get costPrice => $state.composableBuilder(
+      column: $state.table.costPrice,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
@@ -5791,6 +6251,7 @@ typedef $$InvoiceItemsTableCreateCompanionBuilder = InvoiceItemsCompanion
   Value<double> gstRateSnapshot,
   Value<double> discount,
   required double lineTotal,
+  Value<double?> costSnapshot,
   Value<int> rowid,
 });
 typedef $$InvoiceItemsTableUpdateCompanionBuilder = InvoiceItemsCompanion
@@ -5806,6 +6267,7 @@ typedef $$InvoiceItemsTableUpdateCompanionBuilder = InvoiceItemsCompanion
   Value<double> gstRateSnapshot,
   Value<double> discount,
   Value<double> lineTotal,
+  Value<double?> costSnapshot,
   Value<int> rowid,
 });
 
@@ -5837,6 +6299,7 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             Value<double> gstRateSnapshot = const Value.absent(),
             Value<double> discount = const Value.absent(),
             Value<double> lineTotal = const Value.absent(),
+            Value<double?> costSnapshot = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               InvoiceItemsCompanion(
@@ -5851,6 +6314,7 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             gstRateSnapshot: gstRateSnapshot,
             discount: discount,
             lineTotal: lineTotal,
+            costSnapshot: costSnapshot,
             rowid: rowid,
           ),
           createCompanionCallback: ({
@@ -5865,6 +6329,7 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             Value<double> gstRateSnapshot = const Value.absent(),
             Value<double> discount = const Value.absent(),
             required double lineTotal,
+            Value<double?> costSnapshot = const Value.absent(),
             Value<int> rowid = const Value.absent(),
           }) =>
               InvoiceItemsCompanion.insert(
@@ -5879,6 +6344,7 @@ class $$InvoiceItemsTableTableManager extends RootTableManager<
             gstRateSnapshot: gstRateSnapshot,
             discount: discount,
             lineTotal: lineTotal,
+            costSnapshot: costSnapshot,
             rowid: rowid,
           ),
         ));
@@ -5929,6 +6395,11 @@ class $$InvoiceItemsTableFilterComposer
 
   ColumnFilters<double> get lineTotal => $state.composableBuilder(
       column: $state.table.lineTotal,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<double> get costSnapshot => $state.composableBuilder(
+      column: $state.table.costSnapshot,
       builder: (column, joinBuilders) =>
           ColumnFilters(column, joinBuilders: joinBuilders));
 
@@ -6002,6 +6473,11 @@ class $$InvoiceItemsTableOrderingComposer
 
   ColumnOrderings<double> get lineTotal => $state.composableBuilder(
       column: $state.table.lineTotal,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<double> get costSnapshot => $state.composableBuilder(
+      column: $state.table.costSnapshot,
       builder: (column, joinBuilders) =>
           ColumnOrderings(column, joinBuilders: joinBuilders));
 
@@ -6916,6 +7392,148 @@ class $$SettingsTableOrderingComposer
           ColumnOrderings(column, joinBuilders: joinBuilders));
 }
 
+typedef $$ExpensesTableCreateCompanionBuilder = ExpensesCompanion Function({
+  required String id,
+  required String category,
+  required double amount,
+  Value<String?> note,
+  required int spentAt,
+  required int createdAt,
+  Value<int> rowid,
+});
+typedef $$ExpensesTableUpdateCompanionBuilder = ExpensesCompanion Function({
+  Value<String> id,
+  Value<String> category,
+  Value<double> amount,
+  Value<String?> note,
+  Value<int> spentAt,
+  Value<int> createdAt,
+  Value<int> rowid,
+});
+
+class $$ExpensesTableTableManager extends RootTableManager<
+    _$AppDatabase,
+    $ExpensesTable,
+    Expense,
+    $$ExpensesTableFilterComposer,
+    $$ExpensesTableOrderingComposer,
+    $$ExpensesTableCreateCompanionBuilder,
+    $$ExpensesTableUpdateCompanionBuilder> {
+  $$ExpensesTableTableManager(_$AppDatabase db, $ExpensesTable table)
+      : super(TableManagerState(
+          db: db,
+          table: table,
+          filteringComposer:
+              $$ExpensesTableFilterComposer(ComposerState(db, table)),
+          orderingComposer:
+              $$ExpensesTableOrderingComposer(ComposerState(db, table)),
+          updateCompanionCallback: ({
+            Value<String> id = const Value.absent(),
+            Value<String> category = const Value.absent(),
+            Value<double> amount = const Value.absent(),
+            Value<String?> note = const Value.absent(),
+            Value<int> spentAt = const Value.absent(),
+            Value<int> createdAt = const Value.absent(),
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ExpensesCompanion(
+            id: id,
+            category: category,
+            amount: amount,
+            note: note,
+            spentAt: spentAt,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+          createCompanionCallback: ({
+            required String id,
+            required String category,
+            required double amount,
+            Value<String?> note = const Value.absent(),
+            required int spentAt,
+            required int createdAt,
+            Value<int> rowid = const Value.absent(),
+          }) =>
+              ExpensesCompanion.insert(
+            id: id,
+            category: category,
+            amount: amount,
+            note: note,
+            spentAt: spentAt,
+            createdAt: createdAt,
+            rowid: rowid,
+          ),
+        ));
+}
+
+class $$ExpensesTableFilterComposer
+    extends FilterComposer<_$AppDatabase, $ExpensesTable> {
+  $$ExpensesTableFilterComposer(super.$state);
+  ColumnFilters<String> get id => $state.composableBuilder(
+      column: $state.table.id,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get category => $state.composableBuilder(
+      column: $state.table.category,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<double> get amount => $state.composableBuilder(
+      column: $state.table.amount,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<String> get note => $state.composableBuilder(
+      column: $state.table.note,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<int> get spentAt => $state.composableBuilder(
+      column: $state.table.spentAt,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+
+  ColumnFilters<int> get createdAt => $state.composableBuilder(
+      column: $state.table.createdAt,
+      builder: (column, joinBuilders) =>
+          ColumnFilters(column, joinBuilders: joinBuilders));
+}
+
+class $$ExpensesTableOrderingComposer
+    extends OrderingComposer<_$AppDatabase, $ExpensesTable> {
+  $$ExpensesTableOrderingComposer(super.$state);
+  ColumnOrderings<String> get id => $state.composableBuilder(
+      column: $state.table.id,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get category => $state.composableBuilder(
+      column: $state.table.category,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<double> get amount => $state.composableBuilder(
+      column: $state.table.amount,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<String> get note => $state.composableBuilder(
+      column: $state.table.note,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<int> get spentAt => $state.composableBuilder(
+      column: $state.table.spentAt,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+
+  ColumnOrderings<int> get createdAt => $state.composableBuilder(
+      column: $state.table.createdAt,
+      builder: (column, joinBuilders) =>
+          ColumnOrderings(column, joinBuilders: joinBuilders));
+}
+
 class $AppDatabaseManager {
   final _$AppDatabase _db;
   $AppDatabaseManager(this._db);
@@ -6941,4 +7559,6 @@ class $AppDatabaseManager {
       $$PurchaseItemsTableTableManager(_db, _db.purchaseItems);
   $$SettingsTableTableManager get settings =>
       $$SettingsTableTableManager(_db, _db.settings);
+  $$ExpensesTableTableManager get expenses =>
+      $$ExpensesTableTableManager(_db, _db.expenses);
 }

@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kDebugMode;
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import '../../../../core/constants/app_colors.dart';
@@ -67,19 +68,23 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.qr_code_scanner_rounded, color: AppColors.accent, size: 22),
-                      const SizedBox(width: 8),
-                      Text(
-                        widget.title,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w700,
-                        ),
+                  const Icon(Icons.qr_code_scanner_rounded, color: AppColors.accent, size: 22),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      widget.title,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
                       ),
-                    ],
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.flashlight_on_rounded, color: Colors.white70),
+                    tooltip: 'Torch / टॉर्च',
+                    onPressed: () => _controller.toggleTorch(),
                   ),
                   IconButton(
                     icon: const Icon(Icons.close, color: Colors.white70),
@@ -97,6 +102,16 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal> {
                   MobileScanner(
                     controller: _controller,
                     onDetect: _onDetect,
+                    errorBuilder: (context, error, child) => Container(
+                      color: Colors.black,
+                      alignment: Alignment.center,
+                      padding: const EdgeInsets.all(20),
+                      child: const Text(
+                        '📷 कैमरा नहीं खुला।\nनीचे बारकोड नंबर लिखें।',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(color: Colors.white, fontSize: 15, height: 1.5),
+                      ),
+                    ),
                   ),
                   // Reticle Overlay Box
                   Container(
@@ -123,7 +138,7 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: const Text(
-                        'Align barcode inside the golden frame',
+                        'बारकोड को पीले डिब्बे में रखें',
                         style: TextStyle(color: Colors.white, fontSize: 11),
                       ),
                     ),
@@ -139,7 +154,7 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Text(
-                    'Or enter barcode numbers manually:',
+                    'या बारकोड नंबर लिखें:',
                     style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary),
                   ),
                   const SizedBox(height: 8),
@@ -175,7 +190,8 @@ class _BarcodeScannerModalState extends State<BarcodeScannerModal> {
                     ],
                   ),
                   const SizedBox(height: 6),
-                  // Quick Test Barcodes for instant testing
+                  // Sample barcodes, only in debug builds (never shown to shopkeepers).
+                  if (kDebugMode)
                   SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: Row(

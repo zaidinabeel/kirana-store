@@ -36,6 +36,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
   late TextEditingController _nameHiController;
   late TextEditingController _priceController;
   late TextEditingController _mrpController;
+  late TextEditingController _costController;
   late TextEditingController _hsnController;
   late TextEditingController _stockController;
   late TextEditingController _reorderController;
@@ -87,6 +88,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
     _nameHiController = TextEditingController(text: _initialNameHi);
     _priceController = TextEditingController(text: _initialPrice);
     _mrpController = TextEditingController(text: _initialMrp);
+    _costController = TextEditingController(text: p?.costPrice?.toStringAsFixed(2) ?? '');
     _hsnController = TextEditingController(text: _initialHsn);
     _stockController = TextEditingController(text: _initialStock);
     _reorderController = TextEditingController(text: _initialReorder);
@@ -123,6 +125,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
     _nameHiController.dispose();
     _priceController.dispose();
     _mrpController.dispose();
+    _costController.dispose();
     _hsnController.dispose();
     _stockController.dispose();
     _reorderController.dispose();
@@ -206,6 +209,7 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
       unit: _unit,
       price: price,
       mrp: mrp,
+      costPrice: double.tryParse(_costController.text.trim()),
       gstRate: _gstRate,
       hsnCode: _hsnController.text.trim(),
       stockQty: stock,
@@ -513,6 +517,18 @@ class _AddEditProductScreenState extends ConsumerState<AddEditProductScreen> {
                         ),
                       ),
                     ],
+                  ),
+                  const SizedBox(height: 14),
+                  TextFormField(
+                    controller: _costController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    inputFormatters: [DecimalInputFormatter(2)],
+                    decoration: InputDecoration(
+                      labelText: lang == AppLanguage.hi
+                          ? 'खरीद का दाम (ज़रूरी नहीं, मुनाफ़े के लिए)'
+                          : 'Purchase price (optional, for profit)',
+                      prefixText: '₹ ',
+                    ),
                   ),
                   const SizedBox(height: 14),
 

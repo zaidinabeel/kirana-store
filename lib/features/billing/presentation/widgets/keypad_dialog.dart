@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../../../core/i18n/app_strings.dart';
 import 'package:decimal/decimal.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/money/money_utils.dart';
@@ -9,12 +10,14 @@ class KeypadDialog extends StatefulWidget {
   final CartItem item;
   final ValueChanged<Decimal> onQuantityConfirmed;
   final ValueChanged<Decimal> onRupeeAmountConfirmed;
+  final bool hindi;
 
   const KeypadDialog({
     super.key,
     required this.item,
     required this.onQuantityConfirmed,
     required this.onRupeeAmountConfirmed,
+    this.hindi = false,
   });
 
   @override
@@ -167,7 +170,7 @@ class _KeypadDialogState extends State<KeypadDialog> {
                     children: [
                       Expanded(
                         child: _modeButton(
-                          label: 'By Weight (${widget.item.unit})',
+                          label: widget.hindi ? 'वजन से (${widget.hindi ? AppStrings.unitName(AppLanguage.hi, widget.item.unit) : widget.item.unit})' : 'By Weight (${widget.item.unit})',
                           isSelected: !_isRupeeMode,
                           onTap: () {
                             setState(() {
@@ -179,7 +182,7 @@ class _KeypadDialogState extends State<KeypadDialog> {
                       ),
                       Expanded(
                         child: _modeButton(
-                          label: 'By Rupee (₹ Amount)',
+                          label: widget.hindi ? 'रुपये से (₹)' : 'By Rupee (₹ Amount)',
                           isSelected: _isRupeeMode,
                           onTap: () {
                             setState(() {
@@ -213,7 +216,7 @@ class _KeypadDialogState extends State<KeypadDialog> {
                       textBaseline: TextBaseline.alphabetic,
                       children: [
                         Text(
-                          _isRupeeMode ? 'Enter ₹ Amount:' : 'Quantity (${widget.item.unit}):',
+                          _isRupeeMode ? (widget.hindi ? 'कितने ₹ का:' : 'Enter ₹ Amount:') : (widget.hindi ? 'मात्रा (${widget.hindi ? AppStrings.unitName(AppLanguage.hi, widget.item.unit) : widget.item.unit}):' : 'Quantity (${widget.item.unit}):'),
                           style: const TextStyle(fontSize: 13, color: AppColors.textSecondary, fontWeight: FontWeight.w600),
                         ),
                         Text(
@@ -234,8 +237,8 @@ class _KeypadDialogState extends State<KeypadDialog> {
                       children: [
                         Text(
                           _isRupeeMode
-                              ? 'Derived Qty: ${MoneyUtils.formatQuantity(previewQty, widget.item.unit)}'
-                              : 'Total Price: ₹${previewAmount.toStringAsFixed(2)}',
+                              ? '${widget.hindi ? 'वजन' : 'Derived Qty'}: ${MoneyUtils.formatQuantity(previewQty, widget.hindi ? AppStrings.unitName(AppLanguage.hi, widget.item.unit) : widget.item.unit)}'
+                              : '${widget.hindi ? 'कुल दाम' : 'Total Price'}: ₹${previewAmount.toStringAsFixed(2)}',
                           style: const TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.w700,
@@ -276,7 +279,7 @@ class _KeypadDialogState extends State<KeypadDialog> {
                         foregroundColor: AppColors.textSecondary,
                       ),
                       onPressed: () => Navigator.of(context).pop(),
-                      child: const Text('Cancel', style: TextStyle(fontWeight: FontWeight.w700)),
+                      child: Text(widget.hindi ? 'रद्द करें' : 'Cancel', style: const TextStyle(fontWeight: FontWeight.w700)),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -288,9 +291,9 @@ class _KeypadDialogState extends State<KeypadDialog> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                       ),
                       onPressed: _onDone,
-                      child: const Text(
-                        'Set Quantity',
-                        style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
+                      child: Text(
+                        widget.hindi ? 'ठीक है' : 'Set Quantity',
+                        style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800),
                       ),
                     ),
                   ),

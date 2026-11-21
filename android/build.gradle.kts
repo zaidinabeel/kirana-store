@@ -22,3 +22,14 @@ subprojects {
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
 }
+
+// file_picker (11.x) only applies the Kotlin plugin on AGP < 9, expecting AGP's
+// built-in Kotlin. This project keeps android.builtInKotlin=false for older
+// plugins, so apply Kotlin to file_picker explicitly or its sources never compile.
+subprojects {
+    if (name == "file_picker") {
+        plugins.withId("com.android.library") {
+            apply(plugin = "org.jetbrains.kotlin.android")
+        }
+    }
+}

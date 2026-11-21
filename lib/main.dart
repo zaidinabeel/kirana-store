@@ -5,6 +5,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'core/constants/app_theme.dart';
 import 'core/i18n/app_strings.dart';
+import 'core/security/lock_screen.dart';
 import 'features/dashboard/presentation/dashboard_screen.dart';
 
 void main() async {
@@ -50,6 +51,14 @@ class KiranaStoreApp extends ConsumerWidget {
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
+      // Respect the phone's font size, but cap it so screens don't break apart
+      // on phones set to very large text.
+      builder: (context, child) => MediaQuery.withClampedTextScaling(
+        minScaleFactor: 1.0,
+        maxScaleFactor: 1.2,
+        // Covers every screen (including pushed pages) with the PIN pad when locked.
+        child: AppLockGate(child: child!),
+      ),
       home: const MainNavigationShell(),
     );
   }

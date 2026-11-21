@@ -4,7 +4,6 @@ import 'package:decimal/decimal.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/i18n/app_strings.dart';
 import '../../../../core/money/money_utils.dart';
-import '../../../../core/db/app_database.dart';
 import '../../../../core/validation/formatters.dart';
 import '../../../../shared/widgets/debounced_button.dart';
 import '../../../khata/state/khata_notifier.dart';
@@ -97,8 +96,8 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              const Text(
-                'Select Customer for Khata (Credit)',
+              Text(
+                ref.read(localeProvider) == AppLanguage.hi ? 'उधार के लिए ग्राहक चुनें' : 'Select Customer for Khata (Credit)',
                 style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700, color: AppColors.primary),
               ),
               const SizedBox(height: 12),
@@ -111,7 +110,7 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
                     final balance = customers[i].currentBalance;
                     return ListTile(
                       title: Text(c.name, style: const TextStyle(fontWeight: FontWeight.w700)),
-                      subtitle: Text(c.phone ?? 'No phone', style: const TextStyle(fontSize: 12)),
+                      subtitle: Text(c.phone ?? (ref.read(localeProvider) == AppLanguage.hi ? 'फ़ोन नहीं' : 'No phone'), style: const TextStyle(fontSize: 12)),
                       trailing: Text(
                         'Due: ₹${balance.toStringAsFixed(1)}',
                         style: const TextStyle(fontWeight: FontWeight.w700, color: AppColors.alert),
@@ -165,8 +164,8 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
 
     if (totalDue > Decimal.zero && billingState.selectedCustomer == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select a customer for credit (Udhaar) sales'),
+        SnackBar(
+          content: Text(ref.read(localeProvider) == AppLanguage.hi ? 'उधार बिल के लिए पहले ग्राहक चुनें' : 'Please select a customer for credit (Udhaar) sales'),
           backgroundColor: AppColors.alert,
         ),
       );
@@ -227,8 +226,8 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text(
-                  'Bill Amount:',
+                Text(
+                  ref.read(localeProvider) == AppLanguage.hi ? 'बिल की रकम:' : 'Bill Amount:',
                   style: TextStyle(color: Colors.white70, fontSize: 14, fontWeight: FontWeight.w600),
                 ),
                 Text(
@@ -305,8 +304,8 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
           // Split Mode Input Fields
           if (_selectedMode == 'split') ...[
             const SizedBox(height: 16),
-            const Text(
-              'Enter Split Amounts:',
+            Text(
+              ref.read(localeProvider) == AppLanguage.hi ? 'हर तरीके से कितने पैसे:' : 'Enter Split Amounts:',
               style: TextStyle(fontSize: 13, fontWeight: FontWeight.w700, color: AppColors.textPrimary),
             ),
             const SizedBox(height: 8),
@@ -364,7 +363,7 @@ class _PaymentModalState extends ConsumerState<PaymentModal> {
             backgroundColor: AppColors.primary,
             semanticLabel: 'Complete sale button',
             child: Text(
-              'Complete Sale (${MoneyUtils.formatCurrency(widget.grandTotal)})',
+              '${ref.read(localeProvider) == AppLanguage.hi ? 'बिल पक्का करें' : 'Complete Sale'} (${MoneyUtils.formatCurrency(widget.grandTotal)})',
               style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white),
             ),
           ),

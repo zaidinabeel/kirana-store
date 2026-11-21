@@ -4,7 +4,6 @@ import 'package:decimal/decimal.dart';
 import 'package:intl/intl.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/i18n/app_strings.dart';
-import '../../../../core/money/money_utils.dart';
 import '../../../../core/db/app_database.dart';
 import '../../../../core/validation/formatters.dart';
 import '../../../../core/validation/validators.dart';
@@ -59,7 +58,7 @@ class _RecordDebitModalState extends ConsumerState<RecordDebitModal> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Added ₹${parsedAmount.toStringAsFixed(2)} debit for ${widget.customer.name}!'),
+          content: Text(ref.read(localeProvider) == AppLanguage.hi ? '${widget.customer.name} के खाते में ₹${parsedAmount.toStringAsFixed(2)} उधार जुड़ा' : 'Added ₹${parsedAmount.toStringAsFixed(2)} debit for ${widget.customer.name}!'),
           backgroundColor: AppColors.alert,
         ),
       );

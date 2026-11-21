@@ -72,7 +72,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                   ],
                 ),
                 Text(
-                  'Current Stock: ${product.stockQty} ${product.unit}',
+                  '${ref.read(localeProvider) == AppLanguage.hi ? 'अभी स्टॉक' : 'Current Stock'}: ${product.stockQty} ${AppStrings.unitName(ref.read(localeProvider), product.unit)}',
                   style: const TextStyle(fontSize: 14, color: AppColors.textSecondary),
                 ),
                 const SizedBox(height: 16),
@@ -83,18 +83,18 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                         controller: qtyController,
                         keyboardType: const TextInputType.numberWithOptions(decimal: true),
                         decoration: InputDecoration(
-                          labelText: 'Quantity to Add / Remove',
-                          suffixText: product.unit,
+                          labelText: ref.read(localeProvider) == AppLanguage.hi ? 'कितना जोड़ें / घटाएं' : 'Quantity to Add / Remove',
+                          suffixText: AppStrings.unitName(ref.read(localeProvider), product.unit),
                         ),
                       ),
                     ),
                     const SizedBox(width: 12),
                     DropdownButton<String>(
                       value: reason,
-                      items: const [
-                        DropdownMenuItem(value: 'purchase', child: Text('Purchase (+)')),
-                        DropdownMenuItem(value: 'adjustment', child: Text('Count Adjust (+/-)')),
-                        DropdownMenuItem(value: 'return', child: Text('Customer Return (+)')),
+                      items: [
+                        DropdownMenuItem(value: 'purchase', child: Text(ref.read(localeProvider) == AppLanguage.hi ? 'माल आया (+)' : 'Purchase (+)')),
+                        DropdownMenuItem(value: 'adjustment', child: Text(ref.read(localeProvider) == AppLanguage.hi ? 'गिनती ठीक (+/-)' : 'Count Adjust (+/-)')),
+                        DropdownMenuItem(value: 'return', child: Text(ref.read(localeProvider) == AppLanguage.hi ? 'ग्राहक ने लौटाया (+)' : 'Customer Return (+)')),
                       ],
                       onChanged: (val) {
                         if (val != null) setSheetState(() => reason = val);
@@ -116,7 +116,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                           ref.read(inventoryProvider.notifier).adjustStock(product.id, -q, reason);
                           Navigator.pop(ctx);
                         },
-                        child: const Text('Deduct (-)', style: TextStyle(fontWeight: FontWeight.w700)),
+                        child: Text(ref.read(localeProvider) == AppLanguage.hi ? 'घटाएं (-)' : 'Deduct (-)', style: const TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ),
                     const SizedBox(width: 12),
@@ -128,7 +128,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                           ref.read(inventoryProvider.notifier).adjustStock(product.id, q, reason);
                           Navigator.pop(ctx);
                         },
-                        child: const Text('Add (+)', style: TextStyle(fontWeight: FontWeight.w700)),
+                        child: Text(ref.read(localeProvider) == AppLanguage.hi ? 'जोड़ें (+)' : 'Add (+)', style: const TextStyle(fontWeight: FontWeight.w700)),
                       ),
                     ),
                   ],
@@ -159,6 +159,7 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
         ],
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'inventory_add_product_fab',
         backgroundColor: AppColors.accent,
         foregroundColor: AppColors.textPrimary,
         elevation: 2,
@@ -267,10 +268,15 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                               const SizedBox(height: 12),
                               Text(
                                 _searchController.text.isNotEmpty
-                                    ? 'No items match "${_searchController.text}"'
-                                    : 'No inventory items found. Tap "+ Add Product" to get started.',
+                                    ? (lang == AppLanguage.hi
+                                        ? '"${_searchController.text}" नाम का कोई सामान नहीं'
+                                        : 'No items match "${_searchController.text}"')
+                                    : (lang == AppLanguage.hi
+                                        ? 'अभी कोई सामान नहीं है।\nहोम पर "सामान स्कैन करें" या नीचे "नया सामान जोड़ें" दबाएं।'
+                                        : 'No items yet.\nTap "Scan items" on Home or "Add product" below.'),
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 15, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
+                                style: const TextStyle(
+                                    fontSize: 15, color: AppColors.textSecondary, fontWeight: FontWeight.w500),
                               ),
                             ],
                           ),
@@ -284,9 +290,8 @@ class _InventoryScreenState extends ConsumerState<InventoryScreen> {
                           final p = item.product;
                           final isLowStock = p.stockQty <= p.reorderLevel;
 
-                          final displayName = lang == AppLanguage.hi && p.nameHi != null && p.nameHi!.isNotEmpty
-                              ? p.nameHi!
-                              : p.nameEn;
+                          final displayName =
+                              lang == AppLanguage.hi && p.nameHi != null && p.nameHi!.isNotEmpty ? p.nameHi! : p.nameEn;
                           final subName = lang == AppLanguage.hi ? p.nameEn : (p.nameHi ?? '');
 
                           return InkWell(

@@ -100,6 +100,36 @@ flutter test
 
 ---
 
+## 📱 Phone install (Android) / फ़ोन में डालें
+
+```bash
+flutter build apk --release --split-per-abi
+```
+
+- Most phones (2017+): `build/app/outputs/flutter-apk/app-arm64-v8a-release.apk` (~26 MB)
+- Very old / cheap phones: `app-armeabi-v7a-release.apk`
+- Send the APK on WhatsApp, open it on the phone, allow "install unknown apps".
+
+### Data & backup / डेटा और बैकअप
+- All data stays **on the phone** (SQLite in the app's private storage). No internet needed except the optional barcode name lookup.
+- A backup is made **automatically once a day** in `Documents/KiranaStore/Backups` (kept even if the app is uninstalled; last 10 kept).
+- Settings → बैकअप: back up & send to WhatsApp / Google Drive, or restore from a backup file (current data is backed up first).
+
+### Printer / प्रिंटर
+- Any 58mm/80mm **Bluetooth ESC/POS** thermal printer. Pair it in phone Bluetooth settings, then Settings → प्रिंटर → प्रिंटर खोजें.
+- Receipts print as an image, so Hindi and ₹ print correctly. Settings → रसीद पर क्या छपे turns each line on/off (with live preview) and can print automatically after each bill.
+
+### Reports, expenses, PIN / हिसाब, खर्च, PIN
+- Home → हिसाब / मुनाफ़ा: sales, bills, net profit (sales profit minus expenses), payment split, udhaar given/collected, who owes most, best sellers, daily chart — for today, yesterday, this week, this month or last month.
+- Profit uses each item's optional purchase price (खरीद का दाम), frozen on the bill at sale time.
+- Home → खर्च लिखें: rent, electricity, wages, transport, tea and other expenses.
+- Settings → PIN लॉक: 4-digit app lock. The PIN is stored outside the database, so it is not in backups; a forgotten PIN is solved by reinstalling and restoring a backup.
+
+### Help / मदद
+- Home → मदद: Hindi step-by-step guides and an offline "ask a question" box (Hindi, Hinglish or English).
+
+---
+
 ## 📄 License
 
 MIT License. Free for open source and commercial use.

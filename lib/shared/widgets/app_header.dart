@@ -35,6 +35,7 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
           : null,
       title: Text(
         title,
+        overflow: TextOverflow.ellipsis,
         style: const TextStyle(
           fontFamily: 'Manrope',
           fontSize: 18,
@@ -47,7 +48,7 @@ class AppHeader extends ConsumerWidget implements PreferredSizeWidget {
         if (actions != null) ...actions!,
         // Persistent Bilingual Switch: EN / हिं
         Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          padding: const EdgeInsets.fromLTRB(6, 10, 14, 10),
           child: InkWell(
             onTap: () {
               ref.read(localeProvider.notifier).toggleLanguage();
