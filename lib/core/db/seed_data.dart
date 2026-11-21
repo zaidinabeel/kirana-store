@@ -3,6 +3,27 @@ import 'package:uuid/uuid.dart';
 import 'app_database.dart';
 
 class SeedData {
+  static final _initialSeed = Expando<Future<void>>();
+
+  /// Seeds [db] once per database instance; concurrent callers share the same future.
+  static Future<void> ensureSeeded(AppDatabase db) => _initialSeed[db] ??= populate(db);
+
+  /// Removes the sample products, customers and bills so a real shop starts empty.
+  /// Categories are kept because they are useful for any shop.
+  static Future<void> clearSampleData(AppDatabase db) async {
+    await db.transaction(() async {
+      await db.delete(db.invoiceItems).go();
+      await db.delete(db.payments).go();
+      await db.delete(db.invoices).go();
+      await db.delete(db.stockLedger).go();
+      await db.delete(db.purchaseItems).go();
+      await db.delete(db.purchases).go();
+      await db.delete(db.suppliers).go();
+      await db.delete(db.products).go();
+      await db.delete(db.customers).go();
+    });
+  }
+
   static Future<void> populate(AppDatabase db) async {
     final existingCount = await db.select(db.categories).get();
     if (existingCount.isNotEmpty) return; // Already seeded
@@ -310,24 +331,26 @@ class SeedData {
       ),
     );
 
-    // 4. Default Shop & Printer Settings
-    await db.into(db.settings).insert(
-      SettingsCompanion.insert(key: 'shop_name', value: 'Gupta Kirana & General Store'),
-    );
-    await db.into(db.settings).insert(
-      SettingsCompanion.insert(key: 'shop_address', value: 'Plot 14, Main Mandi Road, Ghaziabad'),
-    );
-    await db.into(db.settings).insert(
-      SettingsCompanion.insert(key: 'shop_phone', value: '+91 98112 34567'),
-    );
-    await db.into(db.settings).insert(
-      SettingsCompanion.insert(key: 'gstin', value: '07AAAAA0000A1Z5'),
-    );
-    await db.into(db.settings).insert(
-      SettingsCompanion.insert(key: 'paper_width', value: '58mm'),
-    );
-    await db.into(db.settings).insert(
-      SettingsCompanion.insert(key: 'bill_footer', value: 'धन्यवाद! फिर पधारें | No exchange on loose goods'),
-    );
+    // 4. Default Shop & Printer Settings (sample values, editable in Settings).
+    // insertOrIgnore so a shop's own saved profile is never overwritten.
+    const defaults = {
+      'shop_name': 'Gupta Kirana & General Store',
+      'shop_name_hi': 'गुप्ता किराना एवं जनरल स्टोर',
+      'shop_address': 'Plot 14, Main Mandi Road, Ghaziabad',
+      'shop_address_hi': 'प्लॉट 14, मेन मंडी रोड, गाजियाबाद',
+      'shop_phone': '9811234567',
+      'gstin': '07AAAAA0000A1Z5',
+      'upi_id': '',
+      'paper_width': '58mm',
+      'bill_footer': 'Thank You! Visit Again | No exchange on loose goods',
+      'bill_footer_hi': 'धन्यवाद! फिर पधारें | खुले सामान की कोई वापसी नहीं',
+    };
+    await db.batch((b) {
+      b.insertAll(
+        db.settings,
+        [for (final e in defaults.entries) SettingsCompanion.insert(key: e.key, value: e.value)],
+        mode: InsertMode.insertOrIgnore,
+      );
+    });
   }
 }

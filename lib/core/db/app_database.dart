@@ -20,12 +20,26 @@ part 'app_database.g.dart';
   Purchases,
   PurchaseItems,
   Settings,
+  Expenses,
 ])
 class AppDatabase extends _$AppDatabase {
   AppDatabase([QueryExecutor? e]) : super(e ?? conn.openConnection());
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          // v2: profit (cost prices) and expenses. Existing shop data is kept.
+          if (from < 2) {
+            await m.addColumn(products, products.costPrice);
+            await m.addColumn(invoiceItems, invoiceItems.costSnapshot);
+            await m.createTable(expenses);
+          }
+        },
+      );
 
   static AppDatabase inMemory() {
     return AppDatabase(conn.openInMemory());
@@ -55,6 +69,21 @@ class AppDatabase extends _$AppDatabase {
     final result = await query.getSingle();
     final maxNo = result.read(invoices.invoiceNo.max());
     return (maxNo ?? 0) + 1;
+  }
+
+  // --- Key-Value Settings ---
+  Future<Map<String, String>> getAllSettings() async {
+    final rows = await select(settings).get();
+    return {for (final row in rows) row.key: row.value};
+  }
+
+  Future<void> upsertSettings(Map<String, String> values) async {
+    await batch((b) {
+      b.insertAllOnConflictUpdate(
+        settings,
+        [for (final e in values.entries) SettingsCompanion.insert(key: e.key, value: e.value)],
+      );
+    });
   }
 
   // --- Finalize Sale Atomic Transaction ---
@@ -105,6 +134,9 @@ class AppDatabase extends _$AppDatabase {
       // 2. Insert Invoice Items (Frozen Snapshot) & Update Stock
       for (final item in cartItems) {
         final itemId = const Uuid().v4();
+        final product = item.productId == null
+            ? null
+            : await (select(products)..where((p) => p.id.equals(item.productId!))).getSingleOrNull();
         await into(invoiceItems).insert(
           InvoiceItemsCompanion.insert(
             id: itemId,
@@ -118,12 +150,12 @@ class AppDatabase extends _$AppDatabase {
             gstRateSnapshot: Value(item.gstRate.toDouble()),
             discount: Value(item.discount.toDouble()),
             lineTotal: item.lineTotal.toDouble(),
+            costSnapshot: Value(product?.costPrice),
           ),
         );
 
         // Deduct product stock if product exists in catalog
         if (item.productId != null) {
-          final product = await (select(products)..where((p) => p.id.equals(item.productId!))).getSingleOrNull();
           if (product != null) {
             final newStock = product.stockQty - item.qty.toDouble();
             

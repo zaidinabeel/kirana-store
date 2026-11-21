@@ -90,9 +90,8 @@ class _KhataListScreenState extends ConsumerState<KhataListScreen> {
                   if (v != null && v.trim().isNotEmpty) {
                     final clean = Validators.cleanMobileNumber(v);
                     final khataState = ref.read(khataProvider);
-                    final exists = khataState.customers.any((c) =>
-                        c.customer.phone != null &&
-                        Validators.cleanMobileNumber(c.customer.phone!) == clean);
+                    final exists = khataState.customers.any(
+                        (c) => c.customer.phone != null && Validators.cleanMobileNumber(c.customer.phone!) == clean);
                     if (exists) return 'Customer with this phone already exists';
                   }
                   return null;
@@ -129,11 +128,11 @@ class _KhataListScreenState extends ConsumerState<KhataListScreen> {
                   final name = nameController.text.trim();
                   final opBalance = double.tryParse(balanceController.text.trim()) ?? 0.0;
                   final err = await ref.read(khataProvider.notifier).addCustomer(
-                    name: name,
-                    phone: phoneController.text.trim().isNotEmpty ? phoneController.text.trim() : null,
-                    address: addressController.text.trim().isNotEmpty ? addressController.text.trim() : null,
-                    openingBalance: opBalance,
-                  );
+                        name: name,
+                        phone: phoneController.text.trim().isNotEmpty ? phoneController.text.trim() : null,
+                        address: addressController.text.trim().isNotEmpty ? addressController.text.trim() : null,
+                        openingBalance: opBalance,
+                      );
 
                   if (err != null && ctx.mounted) {
                     ScaffoldMessenger.of(ctx).showSnackBar(
@@ -143,7 +142,8 @@ class _KhataListScreenState extends ConsumerState<KhataListScreen> {
                     Navigator.pop(ctx);
                   }
                 },
-                child: const Text('Save Customer', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
+                child: Text(ref.read(localeProvider) == AppLanguage.hi ? 'ग्राहक सेव करें' : 'Save Customer',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Colors.white)),
               ),
             ],
           ),
@@ -163,6 +163,7 @@ class _KhataListScreenState extends ConsumerState<KhataListScreen> {
         title: AppStrings.khata(lang),
       ),
       floatingActionButton: FloatingActionButton.extended(
+        heroTag: 'khata_add_customer_fab',
         backgroundColor: AppColors.accent,
         foregroundColor: AppColors.textPrimary,
         elevation: 2,
@@ -184,26 +185,29 @@ class _KhataListScreenState extends ConsumerState<KhataListScreen> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          AppStrings.totalOutstanding(lang),
-                          style: const TextStyle(fontSize: 13, color: Colors.white70, fontWeight: FontWeight.w600),
-                        ),
-                        const SizedBox(height: 2),
-                        Text(
-                          MoneyUtils.formatCurrency(khataState.totalOutstanding),
-                          style: const TextStyle(
-                            fontFamily: 'Manrope',
-                            fontSize: 28,
-                            fontWeight: FontWeight.w900,
-                            color: Colors.white,
-                            letterSpacing: -0.5,
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            AppStrings.totalOutstanding(lang),
+                            style: const TextStyle(fontSize: 13, color: Colors.white70, fontWeight: FontWeight.w600),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: 2),
+                          Text(
+                            MoneyUtils.formatCurrency(khataState.totalOutstanding),
+                            style: const TextStyle(
+                              fontFamily: 'Manrope',
+                              fontSize: 28,
+                              fontWeight: FontWeight.w900,
+                              color: Colors.white,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
+                    const SizedBox(width: 8),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                       decoration: BoxDecoration(
@@ -211,7 +215,9 @@ class _KhataListScreenState extends ConsumerState<KhataListScreen> {
                         borderRadius: BorderRadius.circular(20),
                       ),
                       child: Text(
-                        '${khataState.customers.length} Customers',
+                        lang == AppLanguage.hi
+                            ? '${khataState.customers.length} ग्राहक'
+                            : '${khataState.customers.length} Customers',
                         style: const TextStyle(
                           fontFamily: 'Manrope',
                           fontSize: 12,
@@ -261,8 +267,8 @@ class _KhataListScreenState extends ConsumerState<KhataListScreen> {
                 ? const Center(child: CircularProgressIndicator())
                 : customers.isEmpty
                     ? Center(
-                        child: Padding(
-                          padding: const EdgeInsets.all(32.0),
+                        child: SingleChildScrollView(
+                          padding: const EdgeInsets.all(24.0),
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -270,8 +276,12 @@ class _KhataListScreenState extends ConsumerState<KhataListScreen> {
                               const SizedBox(height: 12),
                               Text(
                                 _searchController.text.isNotEmpty
-                                    ? 'No customer matches "${_searchController.text}"'
-                                    : 'No khata customers yet. Tap "+ Add Customer" to create an account.',
+                                    ? (lang == AppLanguage.hi
+                                        ? '"${_searchController.text}" नाम का कोई ग्राहक नहीं'
+                                        : 'No customer matches "${_searchController.text}"')
+                                    : (lang == AppLanguage.hi
+                                        ? 'अभी कोई खाता ग्राहक नहीं है। नीचे "नया ग्राहक जोड़ें" दबाएं।'
+                                        : 'No khata customers yet. Tap "+ Add Customer" to create an account.'),
                                 textAlign: TextAlign.center,
                                 style: const TextStyle(fontSize: 15, color: AppColors.textSecondary),
                               ),

@@ -6,8 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/i18n/app_strings.dart';
-import '../../../core/money/money_utils.dart';
 import '../../../core/db/app_database.dart';
+import '../../../core/settings/shop_profile.dart';
 import '../../../shared/widgets/app_header.dart';
 import '../state/khata_notifier.dart';
 import 'widgets/collect_payment_modal.dart';
@@ -77,9 +77,11 @@ class _KhataDetailScreenState extends ConsumerState<KhataDetailScreen> {
 
   Future<void> _shareStatement() async {
     if (_ledgerData == null) return;
+    final shop = await ref.read(shopProfileProvider.future);
+    if (!mounted || _ledgerData == null) return;
     final buffer = StringBuffer();
     buffer.writeln('📋 *Khata Statement - ${widget.customer.name}*');
-    buffer.writeln('Gupta Kirana & General Store');
+    buffer.writeln(shop.displayName(false));
     buffer.writeln('Date: ${DateFormat('dd-MM-yyyy').format(DateTime.now())}');
     buffer.writeln('Period: ${_ledgerData!.dateRangeString}');
     buffer.writeln('--------------------------------');
@@ -99,11 +101,15 @@ class _KhataDetailScreenState extends ConsumerState<KhataDetailScreen> {
     }
 
     buffer.writeln('--------------------------------');
-    buffer.writeln('Please settle the balance via UPI or Cash.');
-    buffer.writeln('UPI ID: guptakirana@upi');
+    if (shop.upiId.isNotEmpty) {
+      buffer.writeln('Please settle the balance via UPI or Cash.');
+      buffer.writeln('UPI ID: ${shop.upiId}');
+    } else {
+      buffer.writeln('Please settle the balance at the shop.');
+    }
     buffer.writeln('Thank you for your business!');
 
-    await Share.share(buffer.toString(), subject: 'Khata Statement - ${widget.customer.name}');
+    await SharePlus.instance.share(ShareParams(text: buffer.toString(), subject: 'Khata Statement - ${widget.customer.name}'));
   }
 
   void _showEntryDetail(LedgerEntry entry) {
@@ -168,7 +174,7 @@ class _KhataDetailScreenState extends ConsumerState<KhataDetailScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Running Balance:', style: TextStyle(fontSize: 13, color: AppColors.textSecondary)),
+                Text(ref.read(localeProvider) == AppLanguage.hi ? 'उस समय बाकी:' : 'Running Balance:', style: const TextStyle(fontSize: 13, color: AppColors.textSecondary)),
                 Text(
                   '₹${entry.runningBalance.abs().toStringAsFixed(1)} ${entry.runningBalance >= Decimal.zero ? 'Dr' : 'Cr'}',
                   style: TextStyle(
@@ -182,13 +188,13 @@ class _KhataDetailScreenState extends ConsumerState<KhataDetailScreen> {
             ),
             if (entry.subtitle.isNotEmpty) ...[
               const SizedBox(height: 12),
-              const Text('Details / Items:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+              Text(ref.read(localeProvider) == AppLanguage.hi ? 'जानकारी / सामान:' : 'Details / Items:', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
               const SizedBox(height: 4),
               Text(entry.subtitle, style: const TextStyle(fontSize: 13, color: AppColors.textPrimary)),
             ],
             if (entry.items.isNotEmpty) ...[
               const SizedBox(height: 8),
-              const Text('Items Breakdown:', style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
+              Text(ref.read(localeProvider) == AppLanguage.hi ? 'सामान की सूची:' : 'Items Breakdown:', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold, color: AppColors.textSecondary)),
               const SizedBox(height: 4),
               ...entry.items.map((it) => Padding(
                 padding: const EdgeInsets.only(bottom: 2),
@@ -205,7 +211,7 @@ class _KhataDetailScreenState extends ConsumerState<KhataDetailScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('Close', style: TextStyle(fontWeight: FontWeight.bold)),
+            child: Text(ref.read(localeProvider) == AppLanguage.hi ? 'बंद करें' : 'Close', style: const TextStyle(fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -216,7 +222,6 @@ class _KhataDetailScreenState extends ConsumerState<KhataDetailScreen> {
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
     final data = _ledgerData;
-    final isDue = (data?.netBalance ?? Decimal.zero) > Decimal.zero;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8FAFC),
@@ -378,7 +383,7 @@ class _KhataDetailScreenState extends ConsumerState<KhataDetailScreen> {
                 Clipboard.setData(ClipboardData(text: widget.customer.phone!));
                 ScaffoldMessenger.of(context).showSnackBar(
                   SnackBar(
-                    content: Text('Copied phone number ${widget.customer.phone!} to clipboard'),
+                    content: Text(ref.read(localeProvider) == AppLanguage.hi ? 'नंबर कॉपी हो गया: ${widget.customer.phone!}' : 'Copied phone number ${widget.customer.phone!} to clipboard'),
                     duration: const Duration(seconds: 2),
                   ),
                 );

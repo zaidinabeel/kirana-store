@@ -1,21 +1,42 @@
-import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../db/app_database.dart';
+import '../../features/inventory/domain/product_model.dart';
 
 enum AppLanguage { en, hi }
 
+const _languageKey = 'app_language';
+
 final localeProvider = StateNotifierProvider<LocaleNotifier, AppLanguage>((ref) {
-  return LocaleNotifier();
+  return LocaleNotifier(ref.watch(databaseProvider));
 });
 
+/// App language. Hindi by default; the shopkeeper's choice is saved on the phone.
 class LocaleNotifier extends StateNotifier<AppLanguage> {
-  LocaleNotifier() : super(AppLanguage.en);
+  final AppDatabase? _db;
+
+  LocaleNotifier([this._db]) : super(AppLanguage.hi) {
+    _load();
+  }
+
+  Future<void> _load() async {
+    final db = _db;
+    if (db == null) return;
+    try {
+      final saved = (await db.getAllSettings())[_languageKey];
+      if (!mounted) return;
+      if (saved == 'en') state = AppLanguage.en;
+      if (saved == 'hi') state = AppLanguage.hi;
+    } catch (_) {}
+  }
 
   void toggleLanguage() {
-    state = state == AppLanguage.en ? AppLanguage.hi : AppLanguage.en;
+    setLanguage(state == AppLanguage.en ? AppLanguage.hi : AppLanguage.en);
   }
 
   void setLanguage(AppLanguage language) {
     state = language;
+    _db?.upsertSettings({_languageKey: language.name}).ignore();
   }
 }
 
@@ -28,7 +49,7 @@ class AppStrings {
       lang == AppLanguage.hi ? 'डैशबोर्ड' : 'Dashboard';
 
   static String billing(AppLanguage lang) =>
-      lang == AppLanguage.hi ? 'बिलिंग (नया बिल)' : 'Billing';
+      lang == AppLanguage.hi ? 'नया बिल' : 'New Bill';
 
   static String inventory(AppLanguage lang) =>
       lang == AppLanguage.hi ? 'स्टॉक / इन्वेंटरी' : 'Inventory';
@@ -258,4 +279,24 @@ class AppStrings {
 
   static String success(AppLanguage lang) =>
       lang == AppLanguage.hi ? 'सफल रहा!' : 'Success!';
+
+  /// Units are stored in English ('piece', 'kg'...); show them in the app language.
+  static String unitName(AppLanguage lang, String unit) {
+    if (lang != AppLanguage.hi) return unit;
+    const hi = {
+      'piece': 'पीस',
+      'pcs': 'पीस',
+      'kg': 'किलो',
+      'gm': 'ग्राम',
+      'g': 'ग्राम',
+      'litre': 'लीटर',
+      'l': 'लीटर',
+      'ml': 'मि.ली.',
+      'box': 'डिब्बा',
+      'packet': 'पैकेट',
+      'bottle': 'बोतल',
+      'can': 'कैन',
+    };
+    return hi[unit.toLowerCase()] ?? unit;
+  }
 }

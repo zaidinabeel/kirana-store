@@ -4,7 +4,9 @@ import 'package:share_plus/share_plus.dart';
 import '../../../core/constants/app_colors.dart';
 import '../../../core/i18n/app_strings.dart';
 import '../../../core/printing/printer_service.dart';
+import 'package:drift/drift.dart' show Value;
 import '../../../core/db/app_database.dart';
+import '../../../core/settings/shop_profile.dart';
 import '../../../shared/widgets/app_header.dart';
 import '../../inventory/domain/product_model.dart';
 import 'widgets/receipt_widget.dart';
@@ -12,9 +14,13 @@ import 'widgets/receipt_widget.dart';
 class BillPreviewScreen extends ConsumerStatefulWidget {
   final Invoice invoice;
 
+  /// True when opened right after a sale; prints automatically if the shop turned that on.
+  final bool justCreated;
+
   const BillPreviewScreen({
     super.key,
     required this.invoice,
+    this.justCreated = false,
   });
 
   @override
@@ -51,53 +57,70 @@ class _BillPreviewScreenState extends ConsumerState<BillPreviewScreen> {
       customer = await (db.select(db.customers)..where((c) => c.id.equals(widget.invoice.customerId!))).getSingleOrNull();
     }
 
+    if (!mounted) return;
     setState(() {
       _items = items;
       _customer = customer;
       _isLoading = false;
     });
-  }
 
-  Future<void> _printReceipt() async {
-    final printerService = ref.read(printerProvider.notifier);
-    final success = await printerService.printReceiptBitmap(repaintKey: _receiptKey);
-
-    if (mounted) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            success ? 'Receipt sent to thermal printer successfully!' : 'Printer error. Check connection in Settings.',
-          ),
-          backgroundColor: success ? AppColors.success : AppColors.alert,
-        ),
-      );
+    if (widget.justCreated && !_isVoided) {
+      final shop = await ref.read(shopProfileProvider.future);
+      if (shop.receipt.autoPrint && mounted) {
+        WidgetsBinding.instance.addPostFrameCallback((_) => _printReceipt());
+      }
     }
   }
 
+  Future<void> _printReceipt() async {
+    final error = await ref.read(printerProvider.notifier).printReceipt(repaintKey: _receiptKey);
+    if (!mounted) return;
+    final hi = ref.read(localeProvider) == AppLanguage.hi;
+    if (error == null) {
+      await (ref.read(databaseProvider).update(ref.read(databaseProvider).invoices)
+            ..where((i) => i.id.equals(widget.invoice.id)))
+          .write(InvoicesCompanion(printedAt: Value(DateTime.now().millisecondsSinceEpoch)));
+    }
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          error == null ? (hi ? '✓ रसीद छप गई' : '✓ Receipt printed') : error,
+          style: const TextStyle(fontSize: 15),
+        ),
+        backgroundColor: error == null ? AppColors.success : AppColors.alert,
+        duration: Duration(seconds: error == null ? 2 : 5),
+      ),
+    );
+  }
+
   Future<void> _shareBill() async {
+    final shop = await ref.read(shopProfileProvider.future);
+    final shopName = shop.displayName(_isReceiptHindi);
+    final footer = shop.displayFooter(_isReceiptHindi);
     final text = _isReceiptHindi
         ? '''
-🧾 *गुप्ता किराना स्टोर - रसीद*
+🧾 *$shopName - रसीद*
 बिल नं: #${widget.invoice.invoiceNo} (${widget.invoice.financialYear})
 प्रकार: ${widget.invoice.invoiceType == 'gst' ? "जीएसटी इनवॉइस" : "कैश मेमो"}
 कुल राशि: ₹${widget.invoice.total.toStringAsFixed(2)}
 भुगतान: ${widget.invoice.paymentMode.toUpperCase()}
 जमा राशि: ₹${widget.invoice.amountPaid.toStringAsFixed(2)}
 ${widget.invoice.amountDue > 0 ? "बकाया (उधार): ₹${widget.invoice.amountDue.toStringAsFixed(2)}" : ""}
-धन्यवाद! फिर पधारें | गुप्ता किराना स्टोर
+${footer.isNotEmpty ? footer : 'धन्यवाद! फिर पधारें'}
 '''
         : '''
-🧾 *Gupta Kirana Store - Bill Receipt*
+🧾 *$shopName - Bill Receipt*
 Invoice: #${widget.invoice.invoiceNo} (${widget.invoice.financialYear})
 Type: ${widget.invoice.invoiceType.toUpperCase()}
 Total Amount: ₹${widget.invoice.total.toStringAsFixed(2)}
 Payment Mode: ${widget.invoice.paymentMode.toUpperCase()}
 Amount Paid: ₹${widget.invoice.amountPaid.toStringAsFixed(2)}
 ${widget.invoice.amountDue > 0 ? "Due (Khata): ₹${widget.invoice.amountDue.toStringAsFixed(2)}" : ""}
-Thank You! Visit Again | Gupta Kirana
+${footer.isNotEmpty ? footer : 'Thank You! Visit Again'}
 ''';
 
-    await Share.share(text, subject: 'Bill #${widget.invoice.invoiceNo}');
+    await SharePlus.instance.share(ShareParams(text: text, subject: 'Bill #${widget.invoice.invoiceNo}'));
   }
 
   Future<void> _showVoidConfirmation() async {
@@ -146,6 +169,7 @@ Thank You! Visit Again | Gupta Kirana
   Widget build(BuildContext context) {
     final lang = ref.watch(localeProvider);
     final printerState = ref.watch(printerProvider);
+    final shop = ref.watch(shopProfileProvider).valueOrNull ?? ShopProfile.empty;
 
     return Scaffold(
       appBar: AppHeader(
@@ -176,7 +200,7 @@ Thank You! Visit Again | Gupta Kirana
                   ),
                   onPressed: _shareBill,
                   icon: const Icon(Icons.share_rounded, size: 20),
-                  label: Text(AppStrings.sharePdf(lang), style: const TextStyle(fontSize: 14)),
+                  label: Text(lang == AppLanguage.hi ? 'WhatsApp / शेयर' : 'Share', style: const TextStyle(fontSize: 15)),
                 ),
               ),
               const SizedBox(width: 12),
@@ -196,7 +220,9 @@ Thank You! Visit Again | Gupta Kirana
                         )
                       : const Icon(Icons.print_rounded, size: 22),
                   label: Text(
-                    printerState.isPrinting ? 'Printing...' : AppStrings.printReceipt(lang),
+                    printerState.isPrinting
+                        ? (lang == AppLanguage.hi ? 'छप रहा है…' : 'Printing…')
+                        : (lang == AppLanguage.hi ? 'प्रिंट करें' : 'Print'),
                     style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w800),
                   ),
                 ),
@@ -272,6 +298,7 @@ Thank You! Visit Again | Gupta Kirana
                         invoice: widget.invoice,
                         items: _items,
                         customer: _customer,
+                        shop: shop,
                         paperWidth: printerState.paperWidth,
                         isHindi: _isReceiptHindi,
                       ),

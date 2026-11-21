@@ -4,19 +4,13 @@ import 'package:barcode_widget/barcode_widget.dart';
 import '../../../../core/constants/app_colors.dart';
 import '../../../../core/printing/printer_service.dart';
 import '../../../../core/db/app_database.dart';
+import '../../../../core/settings/shop_profile.dart';
 
 class ReceiptWidget extends StatelessWidget {
   final Invoice invoice;
   final List<InvoiceItem> items;
   final Customer? customer;
-  final String shopNameEn;
-  final String shopNameHi;
-  final String shopAddressEn;
-  final String shopAddressHi;
-  final String shopPhone;
-  final String? gstin;
-  final String? footerNoteEn;
-  final String? footerNoteHi;
+  final ShopProfile shop;
   final PaperWidth paperWidth;
   final bool isHindi;
 
@@ -25,14 +19,7 @@ class ReceiptWidget extends StatelessWidget {
     required this.invoice,
     required this.items,
     this.customer,
-    this.shopNameEn = 'Gupta Kirana & General Store',
-    this.shopNameHi = 'गुप्ता किराना एवं जनरल स्टोर',
-    this.shopAddressEn = 'Plot 14, Main Mandi Road, Ghaziabad',
-    this.shopAddressHi = 'प्लॉट 14, मेन मंडी रोड, गाजियाबाद',
-    this.shopPhone = '+91 98112 34567',
-    this.gstin = '07AAAAA0000A1Z5',
-    this.footerNoteEn = 'Thank You! Visit Again | No exchange on loose goods',
-    this.footerNoteHi = 'धन्यवाद! फिर पधारें | खुले सामान की कोई वापसी नहीं',
+    required this.shop,
     this.paperWidth = PaperWidth.mm58,
     this.isHindi = false,
   });
@@ -45,9 +32,10 @@ class ReceiptWidget extends StatelessWidget {
     );
     final width = paperWidth.pixelWidth;
 
-    final displayShopName = isHindi ? shopNameHi : shopNameEn;
-    final displayAddress = isHindi ? shopAddressHi : shopAddressEn;
-    final displayFooter = isHindi ? footerNoteHi : footerNoteEn;
+    final displayShopName = shop.displayName(isHindi);
+    final opts = shop.receipt;
+    final displayAddress = opts.showAddress ? shop.displayAddress(isHindi) : '';
+    final displayFooter = opts.showFooter ? shop.displayFooter(isHindi) : '';
 
     String memoTitle;
     if (isGst) {
@@ -79,7 +67,8 @@ class ReceiptWidget extends StatelessWidget {
 
     return Container(
       width: width,
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+      // Thermal paper already has side margins, so keep padding small for 58mm.
+      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 12),
       decoration: BoxDecoration(
         color: AppColors.thermalPaper,
         border: Border.all(color: AppColors.divider, width: 1),
@@ -108,27 +97,29 @@ class ReceiptWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 3),
-          Text(
-            displayAddress,
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              color: AppColors.thermalText,
-              height: 1.2,
-            ),
-          ),
-          Text(
-            '${isHindi ? "फोन" : "Ph"}: $shopPhone',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w600,
-              color: AppColors.thermalText,
-            ),
-          ),
-          if (isGst && gstin != null) ...[
+          if (displayAddress.isNotEmpty)
             Text(
-              'GSTIN: $gstin',
+              displayAddress,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                color: AppColors.thermalText,
+                height: 1.2,
+              ),
+            ),
+          if (opts.showPhone && shop.phone.isNotEmpty)
+            Text(
+              '${isHindi ? "फोन" : "Ph"}: ${shop.phone}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w600,
+                color: AppColors.thermalText,
+              ),
+            ),
+          if (isGst && opts.showGstin && shop.gstin.isNotEmpty) ...[
+            Text(
+              'GSTIN: ${shop.gstin}',
               textAlign: TextAlign.center,
               style: const TextStyle(
                 fontSize: 11,
@@ -162,8 +153,9 @@ class ReceiptWidget extends StatelessWidget {
             ),
           ),
           const SizedBox(height: 6),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          Wrap(
+            alignment: WrapAlignment.spaceBetween,
+            spacing: 8,
             children: [
               Text(
                 '${isHindi ? "बिल नं" : "Inv"}: #${invoice.invoiceNo} (${invoice.financialYear})',
@@ -175,7 +167,7 @@ class ReceiptWidget extends StatelessWidget {
               ),
             ],
           ),
-          if (customer != null) ...[
+          if (opts.showCustomer && customer != null) ...[
             const SizedBox(height: 3),
             Text(
               '${isHindi ? "ग्राहक" : "Customer"}: ${customer!.name} ${customer!.phone != null ? "(${customer!.phone})" : ""}',
@@ -243,7 +235,7 @@ class ReceiptWidget extends StatelessWidget {
                           item.nameSnapshot,
                           style: const TextStyle(fontSize: 11, fontWeight: FontWeight.w700, height: 1.15),
                         ),
-                        if (isGst && item.hsnSnapshot != null && item.hsnSnapshot!.isNotEmpty)
+                        if (isGst && opts.showTaxDetails && item.hsnSnapshot != null && item.hsnSnapshot!.isNotEmpty)
                           Text(
                             'HSN:${item.hsnSnapshot} GST:${item.gstRateSnapshot.toStringAsFixed(0)}%',
                             style: const TextStyle(fontSize: 9, color: AppColors.textSecondary),
@@ -296,13 +288,10 @@ class ReceiptWidget extends StatelessWidget {
             ),
 
           // GST breakdown if applicable
-          if (isGst && (invoice.cgst > 0 || invoice.sgst > 0 || invoice.igst > 0)) ...[
-            if (invoice.cgst > 0)
-              _summaryRow('CGST (केंद्रीय कर):', '₹${invoice.cgst.toStringAsFixed(2)}'),
-            if (invoice.sgst > 0)
-              _summaryRow('SGST (राज्य कर):', '₹${invoice.sgst.toStringAsFixed(2)}'),
-            if (invoice.igst > 0)
-              _summaryRow('IGST (एकीकृत कर):', '₹${invoice.igst.toStringAsFixed(2)}'),
+          if (isGst && opts.showTaxDetails && (invoice.cgst > 0 || invoice.sgst > 0 || invoice.igst > 0)) ...[
+            if (invoice.cgst > 0) _summaryRow('CGST (केंद्रीय कर):', '₹${invoice.cgst.toStringAsFixed(2)}'),
+            if (invoice.sgst > 0) _summaryRow('SGST (राज्य कर):', '₹${invoice.sgst.toStringAsFixed(2)}'),
+            if (invoice.igst > 0) _summaryRow('IGST (एकीकृत कर):', '₹${invoice.igst.toStringAsFixed(2)}'),
           ],
 
           if (invoice.roundOff != 0)
@@ -319,12 +308,14 @@ class ReceiptWidget extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                isHindi ? 'कुल देय राशि (TOTAL):' : 'TOTAL PAYABLE:',
-                style: const TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w900,
-                  color: AppColors.thermalText,
+              Flexible(
+                child: Text(
+                  isHindi ? 'कुल देय राशि (TOTAL):' : 'TOTAL PAYABLE:',
+                  style: const TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    color: AppColors.thermalText,
+                  ),
                 ),
               ),
               Text(
@@ -343,8 +334,10 @@ class ReceiptWidget extends StatelessWidget {
           const SizedBox(height: 4),
 
           // Payment details
-          _summaryRow(isHindi ? 'भुगतान माध्यम:' : 'Payment Mode:', paymentModeLabel),
-          _summaryRow(isHindi ? 'जमा राशि:' : 'Amount Paid:', '₹${invoice.amountPaid.toStringAsFixed(2)}'),
+          if (opts.showPaymentDetails) ...[
+            _summaryRow(isHindi ? 'भुगतान माध्यम:' : 'Payment Mode:', paymentModeLabel),
+            _summaryRow(isHindi ? 'जमा राशि:' : 'Amount Paid:', '₹${invoice.amountPaid.toStringAsFixed(2)}'),
+          ],
           if (invoice.amountDue > 0)
             _summaryRow(
               isHindi ? 'बकाया (उधार खाता):' : 'Due (Khata):',
@@ -354,35 +347,38 @@ class ReceiptWidget extends StatelessWidget {
 
           const SizedBox(height: 10),
 
-          // Barcode for receipt tracking
-          Center(
-            child: SizedBox(
-              height: 36,
-              width: 160,
-              child: BarcodeWidget(
-                barcode: Barcode.code128(),
-                data: 'INV-${invoice.financialYear}-${invoice.invoiceNo}',
-                drawText: false,
+          if (opts.showBarcode) ...[
+            // Barcode for receipt tracking
+            Center(
+              child: SizedBox(
+                height: 36,
+                width: 160,
+                child: BarcodeWidget(
+                  barcode: Barcode.code128(),
+                  data: 'INV-${invoice.financialYear}-${invoice.invoiceNo}',
+                  drawText: false,
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 2),
-          Text(
-            'INV-${invoice.financialYear}-${invoice.invoiceNo}',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 9, letterSpacing: 1.2),
-          ),
-
-          const SizedBox(height: 8),
-          Text(
-            displayFooter ?? '',
-            textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 10,
-              fontWeight: FontWeight.w600,
-              color: AppColors.textSecondary,
+            const SizedBox(height: 2),
+            Text(
+              'INV-${invoice.financialYear}-${invoice.invoiceNo}',
+              textAlign: TextAlign.center,
+              style: const TextStyle(fontSize: 9, letterSpacing: 1.2),
             ),
-          ),
+          ],
+          if (displayFooter.isNotEmpty) ...[
+            const SizedBox(height: 8),
+            Text(
+              displayFooter,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                color: AppColors.textSecondary,
+              ),
+            ),
+          ],
           const SizedBox(height: 4),
         ],
       ),
@@ -394,15 +390,19 @@ class ReceiptWidget extends StatelessWidget {
       padding: const EdgeInsets.symmetric(vertical: 1.5),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
-              color: AppColors.thermalText,
+          Flexible(
+            child: Text(
+              label,
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: isBold ? FontWeight.w800 : FontWeight.w500,
+                color: AppColors.thermalText,
+              ),
             ),
           ),
+          const SizedBox(width: 6),
           Text(
             value,
             style: TextStyle(

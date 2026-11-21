@@ -71,7 +71,7 @@ class _CollectPaymentModalState extends ConsumerState<CollectPaymentModal> {
       Navigator.of(context).pop();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Received ₹${parsedAmount.toStringAsFixed(2)} from ${widget.customer.name}!'),
+          content: Text(ref.read(localeProvider) == AppLanguage.hi ? '${widget.customer.name} से ₹${parsedAmount.toStringAsFixed(2)} मिले' : 'Received ₹${parsedAmount.toStringAsFixed(2)} from ${widget.customer.name}!'),
           backgroundColor: AppColors.success,
         ),
       );
@@ -129,7 +129,7 @@ class _CollectPaymentModalState extends ConsumerState<CollectPaymentModal> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Text('Outstanding Balance:', style: TextStyle(fontSize: 13, color: AppColors.alert, fontWeight: FontWeight.w700)),
+                Text(ref.read(localeProvider) == AppLanguage.hi ? 'बाकी रकम:' : 'Outstanding Balance:', style: const TextStyle(fontSize: 13, color: AppColors.alert, fontWeight: FontWeight.w700)),
                 Text(
                   MoneyUtils.formatCurrency(widget.currentDue),
                   style: const TextStyle(fontFamily: 'Manrope', fontSize: 16, fontWeight: FontWeight.w900, color: AppColors.alert),

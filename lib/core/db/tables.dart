@@ -22,6 +22,8 @@ class Products extends Table {
   TextColumn get unit => text()();     // 'piece', 'kg', 'gm', 'litre', 'ml', 'box'
   RealColumn get price => real()();    // Stored as decimal-compatible real
   RealColumn get mrp => real().nullable()();
+  /// Purchase price per unit (optional). Used for profit reports. Added in schema v2.
+  RealColumn get costPrice => real().nullable()();
   RealColumn get gstRate => real().withDefault(const Constant(0.0))();
   TextColumn get hsnCode => text().nullable()();
   RealColumn get stockQty => real().withDefault(const Constant(0.0))();
@@ -86,6 +88,8 @@ class InvoiceItems extends Table {
   RealColumn get gstRateSnapshot => real().withDefault(const Constant(0.0))();
   RealColumn get discount => real().withDefault(const Constant(0.0))();
   RealColumn get lineTotal => real()();
+  /// Purchase price per unit frozen at sale time, for profit. Null if unknown. Added in schema v2.
+  RealColumn get costSnapshot => real().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};
@@ -162,4 +166,17 @@ class Settings extends Table {
 
   @override
   Set<Column> get primaryKey => {key};
+}
+
+/// Shop expenses (rent, electricity, wages...). Added in schema v2.
+class Expenses extends Table {
+  TextColumn get id => text()();
+  TextColumn get category => text()(); // 'rent'|'electricity'|'wages'|'tea'|'transport'|'other'
+  RealColumn get amount => real()();
+  TextColumn get note => text().nullable()();
+  IntColumn get spentAt => integer()(); // day the money was spent (ms)
+  IntColumn get createdAt => integer()();
+
+  @override
+  Set<Column> get primaryKey => {id};
 }
